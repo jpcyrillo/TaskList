@@ -103,7 +103,6 @@ class _TasksListPage extends State<TasksListPage> {
     setState(() {
       taskList.remove(task);
     });
-    //
   }
 
 }
