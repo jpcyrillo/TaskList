@@ -13,6 +13,8 @@ class _TasksListPage extends State<TasksListPage> {
 
   TextEditingController taskController = TextEditingController();
   List<Task> taskList = [];
+  Task? deletedTask;
+  int? deletedTaskPosition;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +40,9 @@ class _TasksListPage extends State<TasksListPage> {
                     ),
                     const SizedBox(width: 10),
                     ElevatedButton(
-                      onPressed: addTask,
+                      onPressed: () {
+                        taskController.text.isNotEmpty ? addTask() : null;
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
                         padding: const EdgeInsets.all(15),
@@ -67,9 +71,7 @@ class _TasksListPage extends State<TasksListPage> {
                     const SizedBox(width: 10),
                     ElevatedButton(
                       onPressed: () {
-                        setState(() {
-                          taskList.clear();
-                        });
+                        taskList.isNotEmpty ? showDeletAllTasksDialogue() : null;
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
@@ -100,9 +102,53 @@ class _TasksListPage extends State<TasksListPage> {
   }
 
   void deleteTask(Task task) {
+    deletedTask = task;
+    deletedTaskPosition = taskList.indexOf(task);
+
     setState(() {
       taskList.remove(task);
     });
+
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Tarefa "${task.title}" foi removida com sucesso!'),
+      action: SnackBarAction(
+        label: 'Desfazer',
+        onPressed: () {
+          setState(() {
+            taskList.insert(deletedTaskPosition!, deletedTask!);
+          });
+        },
+      ),
+      duration: const Duration(seconds: 5),
+    ));
   }
 
+  void showDeletAllTasksDialogue() {
+    showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: const Text('Limpar tudo?'),
+              content:
+                  const Text('Você tem certeza que deseja apagar todas as tarefas?'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Cancelar'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    setState(() {
+                      taskList.clear();
+                    });
+                  },
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  child: const Text('Limpar tudo'),
+                ),
+              ],
+            ));
+  }
 }

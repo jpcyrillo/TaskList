@@ -22,7 +22,9 @@ class TasksListItem extends StatelessWidget {
           children: [
             SlidableAction(
               borderRadius: BorderRadius.circular(5),
-              onPressed: deleteTask(task),
+              onPressed: (context) {
+                deleteTask(task);
+              },
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
               icon: Icons.delete,
