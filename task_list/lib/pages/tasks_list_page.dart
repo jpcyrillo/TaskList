@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:task_list/repositories/tasks_repository.dart';
 import '../models/task.dart';
 import '../widgets/tasks_list_item.dart';
 
@@ -10,11 +11,23 @@ class TasksListPage extends StatefulWidget {
 }
 
 class _TasksListPage extends State<TasksListPage> {
-
-  TextEditingController taskController = TextEditingController();
+  final TextEditingController taskController = TextEditingController();
+  final TasksRepository tasksRepository = TasksRepository();
   List<Task> taskList = [];
+  List<Task>? deletedTaskList;
   Task? deletedTask;
   int? deletedTaskPosition;
+  String? errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    tasksRepository.getTaskList().then((value) {
+      setState(() {
+        taskList = value;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,18 +44,23 @@ class _TasksListPage extends State<TasksListPage> {
                     Expanded(
                       child: TextField(
                         controller: taskController,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          border: const OutlineInputBorder(),
                           labelText: 'Adicione uma tarefa',
                           hintText: 'Ex. Estudar matemática',
+                          errorText: errorText,
+                          focusedBorder: const OutlineInputBorder(
+                           borderSide: BorderSide(color: Colors.black, width: 2),
+                          ),
+                          labelStyle: const TextStyle(
+                            color: Colors.black,
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 10),
                     ElevatedButton(
-                      onPressed: () {
-                        taskController.text.isNotEmpty ? addTask() : null;
-                      },
+                      onPressed: () => addTask(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
                         padding: const EdgeInsets.all(15),
@@ -67,11 +85,15 @@ class _TasksListPage extends State<TasksListPage> {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    Text('Você possui ${taskList.length} tarefas recentes.'),
+                    taskList.length == 1 ?
+                      const Text('Você possui 1 tarefa recente.') :
+                      Text('Você possui ${taskList.length} tarefas recentes.'),
                     const SizedBox(width: 10),
                     ElevatedButton(
                       onPressed: () {
-                        taskList.isNotEmpty ? showDeletAllTasksDialogue() : null;
+                        taskList.isNotEmpty
+                            ? showDeleteAllTasksDialogue()
+                            : null;
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
@@ -94,11 +116,21 @@ class _TasksListPage extends State<TasksListPage> {
 
   void addTask() {
     String text = taskController.text;
+
+    if (taskController.text.isEmpty) {
+      setState(() {
+        errorText = 'O título não pode ser vazio!';
+      });
+      return;
+    }
+
     setState(() {
       Task newTask = Task(title: text, dateTime: DateTime.now());
       taskList.add(newTask);
+      errorText = null;
     });
     taskController.clear();
+    tasksRepository.saveTaskList(taskList);
   }
 
   void deleteTask(Task task) {
@@ -109,6 +141,8 @@ class _TasksListPage extends State<TasksListPage> {
       taskList.remove(task);
     });
 
+    tasksRepository.saveTaskList(taskList);
+
     ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text('Tarefa "${task.title}" foi removida com sucesso!'),
@@ -118,19 +152,26 @@ class _TasksListPage extends State<TasksListPage> {
           setState(() {
             taskList.insert(deletedTaskPosition!, deletedTask!);
           });
+          tasksRepository.saveTaskList(taskList);
         },
       ),
       duration: const Duration(seconds: 5),
     ));
   }
 
-  void showDeletAllTasksDialogue() {
+  void deleteAllTasks() {
+    setState(() {
+      taskList.clear();
+    });
+    tasksRepository.saveTaskList(taskList);
+  }
+  void showDeleteAllTasksDialogue() {
     showDialog(
         context: context,
         builder: (context) => AlertDialog(
               title: const Text('Limpar tudo?'),
-              content:
-                  const Text('Você tem certeza que deseja apagar todas as tarefas?'),
+              content: const Text(
+                  'Você tem certeza que deseja apagar todas as tarefas?'),
               actions: [
                 TextButton(
                   onPressed: () {
@@ -141,9 +182,7 @@ class _TasksListPage extends State<TasksListPage> {
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    setState(() {
-                      taskList.clear();
-                    });
+                    deleteAllTasks();
                   },
                   style: TextButton.styleFrom(foregroundColor: Colors.red),
                   child: const Text('Limpar tudo'),

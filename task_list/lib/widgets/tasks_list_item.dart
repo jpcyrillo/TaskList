@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'package:task_list/models/task.dart';
-import 'package:task_list/pages/tasks_list_page.dart';
 
 class TasksListItem extends StatelessWidget {
   const TasksListItem({Key? key, required this.task, required this.deleteTask})
@@ -63,5 +62,4 @@ class TasksListItem extends StatelessWidget {
       ),
     );
   }
-
 }
